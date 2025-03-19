@@ -3,6 +3,8 @@ package com.example.redo_project.service;
 import com.example.redo_project.RedoProjectApplication;
 import com.example.redo_project.controller.UserController;
 import com.example.redo_project.domain.User;
+import com.example.redo_project.exception.AppException;
+import com.example.redo_project.exception.ErrorCode;
 import com.example.redo_project.mapper.UserMapperImpl;
 import com.example.redo_project.repository.UserRepository;
 import com.example.redo_project.request.UpdateUserRequest;
@@ -36,7 +38,7 @@ public class UserService {
 
     public UserResponse createUser(UserCreateRequest request) {
         if (userRepository.existsByUsername(request.getUsername()))
-            throw new RuntimeException("user đã tồn tại");
+            throw new AppException(ErrorCode.USER_EXISTS);
 
         User user = userMapperImpl.toUser(request);
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
@@ -47,7 +49,7 @@ public class UserService {
     // update user
     public UserResponse updateUser(String userId, UpdateUserRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXITS));
 
         userMapperImpl.updateUser(user, request);
 
@@ -56,7 +58,7 @@ public class UserService {
 
     public UserResponse getUserById(String id) {
         return userMapperImpl.toUserResponse(userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found")));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXITS)));
     }
 
     public void deleteUser(String userId) {
