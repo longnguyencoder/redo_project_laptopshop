@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private final UserMapperImpl userMapperImpl;
-    @Autowired
+
     private UserRepository userRepository;
 
     public UserService(UserRepository userRepository, UserMapperImpl userMapperImpl) {
