@@ -3,56 +3,60 @@ package com.example.redo_project.service;
 import com.example.redo_project.RedoProjectApplication;
 import com.example.redo_project.controller.UserController;
 import com.example.redo_project.domain.User;
+import com.example.redo_project.mapper.UserMapperImpl;
 import com.example.redo_project.repository.UserRepository;
 import com.example.redo_project.request.UpdateUserRequest;
 import com.example.redo_project.request.UserCreateRequest;
+import com.example.redo_project.response.UserResponse;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
+
+    private final UserMapperImpl userMapperImpl;
     @Autowired
     private UserRepository userRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserMapperImpl userMapperImpl) {
         this.userRepository = userRepository;
+        this.userMapperImpl = userMapperImpl;
 
     }
 
-    public String handHelloWord() {
-        return "hello word";
+    public List<UserResponse> getUsers() {
+        return userRepository.findAll().stream()
+                .map(userMapperImpl::toUserResponse).toList();
     }
 
-    public List<User> getUsers() {
-        return userRepository.findAll();
+    public UserResponse createUser(UserCreateRequest request) {
+        if (userRepository.existsByUsername(request.getUsername()))
+            throw new RuntimeException("user đã tồn tại");
+
+        User user = userMapperImpl.toUser(request);
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        return userMapperImpl.toUserResponse(userRepository.save(user));
     }
 
-    public User createUser(UserCreateRequest request) {
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
-        user.setDob(request.getDob());
-        return userRepository.save(user);
+    // update user
+    public UserResponse updateUser(String userId, UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        userMapperImpl.updateUser(user, request);
+
+        return userMapperImpl.toUserResponse(userRepository.save(user));
     }
 
-    public User UpdateUser(String userId, UpdateUserRequest request) {
-        User user = getUserById(userId);
-
-        user.setPassword(request.getPassword());
-        user.setFirstname(request.getFirstname());
-        user.setLastname(request.getLastname());
-        user.setDob(request.getDob());
-        return userRepository.save(user);
-    }
-
-    public User getUserById(String id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("user not found")); // nếu tìm thấy user thì trả về
+    public UserResponse getUserById(String id) {
+        return userMapperImpl.toUserResponse(userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found")));
     }
 
     public void deleteUser(String userId) {
